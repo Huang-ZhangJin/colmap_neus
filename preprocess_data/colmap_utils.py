@@ -18,9 +18,9 @@ from rich.console import Console
 from rich.progress import track
 from typing_extensions import Literal
 
-from nerfstudio.process_data.process_data_utils import CameraModel
-from nerfstudio.utils.rich_utils import status
-from nerfstudio.utils.scripts import run_command
+from process_data_utils import CameraModel
+from cneus.utils.rich_utils import status
+from cneus.utils.run_cmd import run_command
 
 CONSOLE = Console(width=120)
 
@@ -563,6 +563,8 @@ def colmap_to_json(cameras_path: Path, images_path: Path, output_dir: Path, came
     camera_params = cameras[1].params
 
     frames = []
+    output_dir_pose = output_dir / 'pose'
+    output_dir_pose.mkdir(parents=True, exist_ok=True)
     for _, im_data in images.items():
         rotation = qvec2rotmat(im_data.qvec)
         translation = im_data.tvec.reshape(3, 1)
@@ -575,6 +577,7 @@ def colmap_to_json(cameras_path: Path, images_path: Path, output_dir: Path, came
         c2w[2, :] *= -1
 
         name = Path(f"./images/{im_data.name}")
+        np.savetxt(output_dir_pose / Path(str(name.stem+'.txt')), c2w)
 
         frame = {
             "file_path": name.as_posix(),
@@ -617,6 +620,7 @@ def colmap_to_json(cameras_path: Path, images_path: Path, output_dir: Path, came
         json.dump(out, f, indent=4)
 
     return len(frames)
+
 
 
 def get_matching_summary(num_intial_frames: int, num_matched_frames: int) -> str:

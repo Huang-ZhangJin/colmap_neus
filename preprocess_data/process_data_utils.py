@@ -12,8 +12,8 @@ from typing import List, Optional, Tuple
 from rich.console import Console
 from typing_extensions import Literal
 
-from nerfstudio.utils.rich_utils import status
-from nerfstudio.utils.scripts import run_command
+from cneus.utils.rich_utils import status
+from cneus.utils.run_cmd import run_command
 
 CONSOLE = Console(width=120)
 
