@@ -1,0 +1,4 @@
+numpy
+opencv-python
+omegaconf
+lu_vp_detect
