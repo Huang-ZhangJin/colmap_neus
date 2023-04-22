@@ -14,6 +14,7 @@ from typing import Dict, Optional, Tuple
 import appdirs
 import numpy as np
 import requests
+import trimesh
 from rich.console import Console
 from rich.progress import track
 from typing_extensions import Literal
@@ -464,6 +465,7 @@ def run_colmap(
     verbose: bool = False,
     matching_method: Literal["vocab_tree", "exhaustive", "sequential"] = "vocab_tree",
     colmap_cmd: str = "colmap",
+    mvs_dense: bool = False,
 ) -> None:
     """Runs COLMAP on the images.
 
@@ -542,8 +544,43 @@ def run_colmap(
         run_command(" ".join(bundle_adjuster_cmd), verbose=verbose)
     CONSOLE.log("[bold green]:tada: Done refining intrinsics.")
 
+    if mvs_dense:
+        assert gpu == True
+        dense_dir = colmap_dir / "dense"
+        dense_dir.mkdir(parents=True, exist_ok=True)
+        # Image undistortion
+        with status(msg="[bold yellow]Image undistoring...", spinner="dqpb", verbose=verbose):
+            image_undistorter_cmd = [
+                f"{colmap_cmd} image_undistorter",
+                f"--image_path {image_dir}",
+                f"--input_path {sparse_dir}/0",
+                f"--output_path {dense_dir}",
+            ]
+            run_command(" ".join(image_undistorter_cmd), verbose=verbose)
+        CONSOLE.log("[bold green]:tada: Done Image undistortion.")
+        # PatchMatch Stereo
+        with status(msg="[bold yellow]PatchMatch Stereo... (This may take a while)", spinner="dqpb", verbose=verbose):
+            patch_match_stereo_cmd = [
+                f"{colmap_cmd} patch_match_stereo",
+                f"--workspace_path {dense_dir}",
+                "--PatchMatchStereo.cache_size 64",
+            ]
+            run_command(" ".join(patch_match_stereo_cmd), verbose=verbose)
+        CONSOLE.log("[bold green]:tada: Done PatchMatch Stereo.")
+        # Fusing the mvs result
+        with status(msg="[bold yellow]Stereo fusion...", spinner="dqpb", verbose=verbose):
+            stereo_fusion_cmd = [
+                f"{colmap_cmd} stereo_fusion",
+                f"--workspace_path {dense_dir}",
+                f"--output_path {colmap_dir}/fuse.ply",
+                f"--StereoFusion.cache_size 64",
+            ]
+            run_command(" ".join(stereo_fusion_cmd), verbose=verbose)
+        CONSOLE.log("[bold green]:tada: Done Stereo Fusion.")
 
-def colmap_to_json(cameras_path: Path, images_path: Path, output_dir: Path, camera_model: CameraModel) -> int:
+
+
+def colmap_to_json(cameras_path: Path, images_path: Path, points3D_path: Path, output_dir: Path, camera_model: CameraModel) -> int:
     """Converts COLMAP's cameras.bin and images.bin to a JSON file.
 
     Args:
@@ -558,7 +595,18 @@ def colmap_to_json(cameras_path: Path, images_path: Path, output_dir: Path, came
 
     cameras = read_cameras_binary(cameras_path)
     images = read_images_binary(images_path)
+    pts3d = read_points3d_binary(points3D_path)
 
+    pts_arr = []
+    for k in pts3d:
+        pts_arr.append(np.concatenate((pts3d[k].xyz, pts3d[k].rgb, np.ones(1,)*255)))
+    pts_arr = np.stack(pts_arr, axis=0)
+    CONSOLE.log(f"[bold green]:tada: Get SFM {pts_arr.shape[0]} sparse Points")
+    pcd = trimesh.PointCloud(vertices = pts_arr[..., :3], 
+                            colors = np.array(pts_arr[..., 3:], dtype=np.uint8))
+    pcd.export(str(output_dir / "sparse_sfm_points.ply"))
+    np.savetxt(str(output_dir / "sparse_sfm_points.xyz"), pts_arr[..., :3])
+    
     # Only supports one camera
     camera_params = cameras[1].params
 

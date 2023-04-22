@@ -80,6 +80,8 @@ class ProcessImages:
     """If True, skips COLMAP and generates transforms.json if possible."""
     colmap_cmd: str = "colmap"
     """How to call the COLMAP executable."""
+    mvs_dense: bool = False
+    """If True, will do the patch match stereo"""
     gpu: bool = True
     """If True, use GPU."""
     verbose: bool = False
@@ -121,6 +123,7 @@ class ProcessImages:
                     verbose=self.verbose,
                     matching_method=self.matching_method,
                     colmap_cmd=self.colmap_cmd,
+                    mvs_dense=self.mvs_dense
                 )
             else:
                 CONSOLE.log("[bold red]Invalid combination of sfm_tool, feature_type, and matcher_type, exiting")
@@ -196,6 +199,8 @@ class ProcessVideo:
     """If True, skips COLMAP and generates transforms.json if possible."""
     colmap_cmd: str = "colmap"
     """How to call the COLMAP executable."""
+    mvs_dense: bool = False
+    """If True, will do the patch match stereo"""
     gpu: bool = True
     """If True, use GPU."""
     verbose: bool = False
@@ -236,17 +241,27 @@ class ProcessVideo:
                     verbose=self.verbose,
                     matching_method=self.matching_method,
                     colmap_cmd=self.colmap_cmd,
+                    mvs_dense=self.mvs_dense,
                 )
             else:
                 CONSOLE.log("[bold red]Invalid combination of sfm_tool, feature_type, and matcher_type, exiting")
                 sys.exit(1)
         
+        num_matched_frames = colmap_utils.colmap_to_json(
+                    cameras_path=colmap_dir / "sparse" / "0" / "cameras.bin",
+                    images_path=colmap_dir / "sparse" / "0" / "images.bin",
+                    points3D_path=colmap_dir / "sparse" / "0" / "points3D.bin",
+                    output_dir=self.output_dir,
+                    camera_model=CAMERA_MODELS[self.camera_type],
+                )
+
         # Save transforms.json
         if (colmap_dir / "sparse" / "0" / "cameras.bin").exists():
             with CONSOLE.status("[bold yellow]Saving results", spinner="balloon"):
                 num_matched_frames = colmap_utils.colmap_to_json(
                     cameras_path=colmap_dir / "sparse" / "0" / "cameras.bin",
                     images_path=colmap_dir / "sparse" / "0" / "images.bin",
+                    points3D_path=colmap_dir / "sparse" / "0" / "points3D.bin",
                     output_dir=self.output_dir,
                     camera_model=CAMERA_MODELS[self.camera_type],
                 )
@@ -279,7 +294,18 @@ if __name__ == "__main__":
         required=True,
         help="path to store output",
     )
+    parser.add_argument(
+        "--gpu",
+        type=str,
+        default=None,
+        required=True,
+        help="gpu for cuda_visible_devices",
+    )
     args = parser.parse_args()
+
+    if args.gpu is not None:
+        assert len(args.gpu) == 1
+        os.environ["CUDA_VISIBLE_DEVICES"] = str(args.gpu)
     
     datapath = os.path.abspath(args.data)
     outputpath = args.output_dir
@@ -288,8 +314,9 @@ if __name__ == "__main__":
     if os.path.isdir(datapath): 
         proc = ProcessImages(
             Path(datapath), Path(outputpath),
-            num_downscales = 1,
+            num_downscales = 0,
             skip_colmap = False,
+            mvs_dense=False,
             gpu = True,
             verbose  = False,
         )
@@ -297,8 +324,9 @@ if __name__ == "__main__":
         proc = ProcessVideo(
             Path(datapath), Path(outputpath),
             num_frames_target = 300,
-            num_downscales = 1,
+            num_downscales = 0,
             skip_colmap = False,
+            mvs_dense=True,
             gpu = True,
             verbose  = False,
             )
