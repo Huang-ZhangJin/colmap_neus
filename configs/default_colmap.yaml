@@ -1,0 +1,22 @@
+factor: 1
+
+step_size: 1.0
+grid_sample_res: 64
+max_grid_sample_res: 256
+ups_epoch: 1
+
+dataset_type: colmap
+
+model:
+    level: 6
+    sh_degree: 4
+    sdf_n_layers: 8
+    sdf_skip_in:
+        - 4
+    rgb_n_layers: 4
+    dim_geo: 256
+    init_val: 0.3
+    inside_outside: false
+
+bound: 1.0
+grid_res: 64
