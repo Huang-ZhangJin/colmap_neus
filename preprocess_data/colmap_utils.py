@@ -611,7 +611,7 @@ def colmap_to_json(cameras_path: Path, images_path: Path, points3D_path: Path, o
     camera_params = cameras[1].params
 
     frames = []
-    output_dir_pose = output_dir / 'pose'
+    output_dir_pose = output_dir / 'pose_origin'
     output_dir_pose.mkdir(parents=True, exist_ok=True)
     for _, im_data in images.items():
         rotation = qvec2rotmat(im_data.qvec)
@@ -664,7 +664,7 @@ def colmap_to_json(cameras_path: Path, images_path: Path, points3D_path: Path, o
 
     out["frames"] = frames
 
-    with open(output_dir / "transforms.json", "w", encoding="utf-8") as f:
+    with open(output_dir / "transforms_origin.json", "w", encoding="utf-8") as f:
         json.dump(out, f, indent=4)
 
     return len(frames)

@@ -298,7 +298,6 @@ if __name__ == "__main__":
         "--gpu",
         type=str,
         default=None,
-        required=True,
         help="gpu for cuda_visible_devices",
     )
     args = parser.parse_args()

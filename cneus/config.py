@@ -112,18 +112,6 @@ def get_default_args() -> argparse.ArgumentParser:
     )
     group.add_argument("--ups_epoch", type=int, default=2, help="grid upsample epoch.")
 
-    # planar normal marching cube
-    group = parser.add_argument_group("planar normal marching cube options")
-    group.add_argument(
-        "--planar_normal_marchingcube_res", type=int, default=128, help="marching cube resolution."
-    )
-    group.add_argument(
-        "--planar_normal_marchingcube_thresh", type=float, default=0.0, help="mraching cube thresh."
-    )
-    group.add_argument(
-        "--plane_slidewindow_size", type=int, default=7, help="marching cube resolution."
-    )
-
     return parser
 
 
