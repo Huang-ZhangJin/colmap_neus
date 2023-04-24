@@ -138,7 +138,7 @@ def train_epoch(
         (rgb_pred, depth_pred, normal_pred, normals, sval, _, weight_sum) = neus.train_render_outside_cuda(
             rays,
             opt,
-            ek_bound = 1.2,
+            ek_bound = 1.8,
             cos_anneal_ratio=cos_anneal,
             up_sample_steps=up_sample_steps,
         )

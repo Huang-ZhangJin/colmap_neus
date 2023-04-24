@@ -381,7 +381,6 @@ class NeuS(nn.Module):
         #     relax_inside_sphere.sum() + 1e-5
         # )
 
-        ek_bound = 1.8
         eikonal_points = torch.empty_like(peak_weights_points).uniform_(-ek_bound, ek_bound)
         normal_pts = torch.cat([peak_weights_points.detach(), eikonal_points], dim=-2)
         _, normal_eik = self.sdf_net(normal_pts)
