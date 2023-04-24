@@ -95,9 +95,9 @@ if __name__ == '__main__':
     
     sparse_or_dense = 'dense'
     if sparse_or_dense == 'dense':
-        # ###########################################################################
+        ###########################################################################
         # ''' Step one: reconstruct the mesh and manually clean it '''
-        # pcd = o3d.io.read_point_cloud(colmap_mvs_pts)
+        pcd = o3d.io.read_point_cloud(colmap_mvs_pts)
         # poisson_mesh = poisson_o3d(pcd, depth=9)
         # o3d.io.write_triangle_mesh(os.path.join(work_dir, f"mvs_colmap_poisson.ply"), poisson_mesh)
 
@@ -105,7 +105,21 @@ if __name__ == '__main__':
         # if msg != 'y':
         #     exit()
 
-        # Mesh from colmap to opencv coornidate
+        # # Get the filtered mvs point clouds
+        # import ipdb; ipdb.set_trace()
+        # dist_thresh = 0.1
+        # mesh_colmap_poisson = o3d.io.read_triangle_mesh(os.path.join(work_dir, f"mvs_colmap_poisson_.ply")) 
+        # mesh_colmap_poisson_pts = o3d.geometry.PointCloud(mesh_colmap_poisson.vertices)
+        # dist = pcd.compute_point_cloud_distance(mesh_colmap_poisson_pts)
+        # dist = np.asarray(dist)
+        # ind = np.where(dist < dist_thresh)[0]
+        # pcd_filter = pcd.select_by_index(ind)
+        # o3d.io.write_point_cloud(os.path.join(work_dir, "mvs_pts_filter.ply"), pcd_filter)
+        # poisson_mesh = poisson_o3d(pcd_filter, depth=9)
+        # o3d.io.write_triangle_mesh(os.path.join(work_dir, f"mvs_colmap_poisson.ply"), poisson_mesh)
+
+        # import ipdb; ipdb.set_trace()
+        # # Mesh from colmap to opencv coornidate
         # ref_mesh = trimesh.load(os.path.join(work_dir, f"mvs_colmap_poisson.ply"))
         # nvertices = np.asarray(ref_mesh.vertices)
         # nvertices = nvertices[:, np.array([1,0,2])]
@@ -113,74 +127,78 @@ if __name__ == '__main__':
         # ref_mesh.vertices = nvertices
         # ref_mesh.export(os.path.join(work_dir, f"mvs_opencv_poisson.ply"))
 
-        ###########################################################################
-        ''' Step two: scale the object into normalized bbox'''
-        scale = 1; offset = np.array([0,0,0])
-        ref_mesh = trimesh.load(os.path.join(work_dir, f"mvs_opencv_poisson.ply"))
-        min_bound, max_bound = np.array(ref_mesh.bounds)
-        offset = (max_bound + min_bound) / 2
-        scale = 1.86 / (max_bound - min_bound).max()  # within bound [-0.93, 0.93]
-        norm_vertices = np.asarray(ref_mesh.vertices)
-        norm_vertices -= offset
-        norm_vertices *= scale
-        ref_mesh.vertices = norm_vertices
-        ref_mesh.export(os.path.join(work_dir, f"mvs_opencv_poisson_norm.ply"))
+        # ##########################################################################
+        # ''' Step two: scale the object into normalized bbox'''
+        # scale = 1; offset = np.array([0,0,0])
+        # ref_mesh = trimesh.load(os.path.join(work_dir, f"mvs_opencv_poisson.ply"))
+        # min_bound, max_bound = np.array(ref_mesh.bounds)
+        # offset = (max_bound + min_bound) / 2
+        # scale = 1.86 / (max_bound - min_bound).max()  # within bound [-0.93, 0.93]
+        # norm_vertices = np.asarray(ref_mesh.vertices)
+        # norm_vertices -= offset
+        # norm_vertices *= scale
+        # ref_mesh.vertices = norm_vertices
+        # ref_mesh.export(os.path.join(work_dir, f"mvs_opencv_poisson_norm.ply"))
 
-        poses_norm = []
-        for pose_ori in poses_origin:
-            rescale_pose = np.eye(4)
-            rescale_pose[:3, :3] = pose_ori[:3, :3]
-            rescale_pose[:3, 3] = (pose_ori[:3, 3] - offset) * scale
-            poses_norm.append(rescale_pose)
-        poses_norm = np.stack(poses_norm)
-
-
-        ###########################################################################
-        ''' Step three: rot the object to be z-axis up, and xy plane as ground'''
-        norm_mesh = trimesh.load(os.path.join(work_dir, "mvs_opencv_poisson_norm.ply"))
-        # rxyz = tt.euler_matrix(0 / 180 * np.pi, 30 / 180 * np.pi, 0 / 180 * np.pi, "rxyz")
-        # rlist = [0.634894, 0.39075, 0.666501, 0, -0.343688, 0.915459, -0.209318, 0, -0.691945, -0.0961734, 0.715516, 0, 0, 0, 0, 1 ]
-        rlist = [0.607278, 0.451851, 0.653487, 0, -0.399084, 0.884712, -0.240866, 0, -0.686983, -0.114524, 0.717592, 0, 0, 0, 0, 1]
-        rxyz=np.array(rlist).reshape(4,4)
-
-        nvertices = np.asarray(norm_mesh.vertices)
-        nvertices = nvertices @ rxyz[:3, :3].T
-        norm_mesh.vertices = nvertices
-        norm_mesh.export(os.path.join(work_dir, f"mvs_opencv_poisson_norm_zup.ply"))
-
-        # Scale again
-        scale = 1; offset = np.array([0,0,0])
-        ref_mesh = trimesh.load(os.path.join(work_dir, f"mvs_opencv_poisson_norm_zup.ply"))
-        min_bound, max_bound = np.array(ref_mesh.bounds)
-        offset = (max_bound + min_bound) / 2
-        scale = 1.86 / (max_bound - min_bound).max()  # within bound [-0.93, 0.93]
-        norm_vertices = np.asarray(ref_mesh.vertices)
-        norm_vertices -= offset
-        norm_vertices *= scale
-        ref_mesh.vertices = norm_vertices
-        ref_mesh.export(os.path.join(work_dir, f"mvs_opencv_poisson_norm_zup_norm.ply"))
-
-        poses_norm_zup = []
-        for pose_nor in poses_norm:
-            rescale_pose = np.eye(4)
-            rescale_pose[:3, :4] = rxyz[:3, :3] @ pose_nor[:3, :4]
-            rescale_pose[:3, 3] = (rescale_pose[:3, 3] - offset) * scale
-            poses_norm_zup.append(rescale_pose)
-        poses_norm_zup = np.stack(poses_norm_zup)
-
-        # Save the pose
-        pose_trans_path
-        for pose, posfname in zip(poses_norm_zup, pose_origin_files):
-            np.savetxt(
-                os.path.join(pose_trans_path, os.path.basename(posfname)), 
-                pose @ np.diag([1, -1, -1, 1])    # OpenCV -> OpenGL
-            )
+        # poses_norm = []
+        # for pose_ori in poses_origin:
+        #     rescale_pose = np.eye(4)
+        #     rescale_pose[:3, :3] = pose_ori[:3, :3]
+        #     rescale_pose[:3, 3] = (pose_ori[:3, 3] - offset) * scale
+        #     poses_norm.append(rescale_pose)
+        # poses_norm = np.stack(poses_norm)
 
 
-        ##########################################################################
+        # ###########################################################################
+        # ''' Step three: rot the object to be z-axis up, and xy plane as ground'''
+        # norm_mesh = trimesh.load(os.path.join(work_dir, "mvs_opencv_poisson_norm.ply"))
+        # # rxyz = tt.euler_matrix(0 / 180 * np.pi, 30 / 180 * np.pi, 0 / 180 * np.pi, "rxyz")
+        # # rlist = [0.607278, 0.451851, 0.653487, 0, -0.399084, 0.884712, -0.240866, 0, -0.686983, -0.114524, 0.717592, 0, 0, 0, 0, 1]  # for toy_bear
+        # rlist = [-0.333699, -0.49154, -0.804384, 0, 0.275198, -0.866921, 0.415589, 0, -0.901616, -0.082683, 0.424562, 0, 0, 0, 0, 1 ]  # for leopard
+
+        # rxyz=np.array(rlist).reshape(4,4)
+
+        # nvertices = np.asarray(norm_mesh.vertices)
+        # nvertices = nvertices @ rxyz[:3, :3].T
+        # norm_mesh.vertices = nvertices
+        # norm_mesh.export(os.path.join(work_dir, f"mvs_opencv_poisson_norm_zup.ply"))
+
+        # # Scale again
+        # scale = 1; offset = np.array([0,0,0])
+        # ref_mesh = trimesh.load(os.path.join(work_dir, f"mvs_opencv_poisson_norm_zup.ply"))
+        # min_bound, max_bound = np.array(ref_mesh.bounds)
+        # offset = (max_bound + min_bound) / 2
+        # scale = 1.86 / (max_bound - min_bound).max()  # within bound [-0.93, 0.93]
+        # norm_vertices = np.asarray(ref_mesh.vertices)
+        # norm_vertices -= offset
+        # norm_vertices *= scale
+        # ref_mesh.vertices = norm_vertices
+        # ref_mesh.export(os.path.join(work_dir, f"mvs_opencv_poisson_norm_zup_norm.ply"))
+
+        # poses_norm_zup = []
+        # for pose_nor in poses_norm:
+        #     rescale_pose = np.eye(4)
+        #     rescale_pose[:3, :4] = rxyz[:3, :3] @ pose_nor[:3, :4]
+        #     rescale_pose[:3, 3] = (rescale_pose[:3, 3] - offset) * scale
+        #     poses_norm_zup.append(rescale_pose)
+        # poses_norm_zup = np.stack(poses_norm_zup)
+
+        # # Save the pose
+        # pose_trans_path
+        # for pose, posfname in zip(poses_norm_zup, pose_origin_files):
+        #     np.savetxt(
+        #         os.path.join(pose_trans_path, os.path.basename(posfname)), 
+        #         pose @ np.diag([1, -1, -1, 1])    # OpenCV -> OpenGL
+        #     )
+
+
+        # ##########################################################################
         ''' Step four: render the foreground mask for the object'''
+        # mesh_render = o3d.io.read_triangle_mesh(
+        #     os.path.join(work_dir, "mvs_opencv_poisson_norm_zup_norm.ply")
+        # )
         mesh_render = o3d.io.read_triangle_mesh(
-            os.path.join(work_dir, "mvs_opencv_poisson_norm_zup_norm.ply")
+            os.path.join(work_dir, "pseudo_gt.ply")
         )
         mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh_render)
         scene = o3d.t.geometry.RaycastingScene()
@@ -201,7 +219,8 @@ if __name__ == '__main__':
         )
         image_files.sort(key=lambda x: int(os.path.basename(x)[:-4].split("_")[1]))
         
-        mask_path = os.path.join(work_dir, "masks")
+        # mask_path = os.path.join(work_dir, "masks")
+        mask_path = os.path.join(work_dir, "masks_pseudo")
         os.makedirs(mask_path, exist_ok=True)
         for pose, imgf in tqdm(zip(poses, image_files)):
             origins = pose[:3, 3]  # [3]
@@ -217,7 +236,21 @@ if __name__ == '__main__':
             depth[np.isinf(depth)] = 0
             depth[depth > 0.05] = 1
             depth[depth <= 0.05] = 0
-            np.save(os.path.join(mask_path, f"{os.path.basename(imgf)[:-4]}.npy"), depth)
+            imageio.imsave(os.path.join(mask_path, f"{os.path.basename(imgf)}"), np.array(depth*255, dtype=np.uint8))
             img = imageio.imread(imgf)
             img[depth<0.5] = 0
-            imageio.imsave(os.path.join(mask_path, f"{os.path.basename(imgf)}"), img)
+            imageio.imsave(os.path.join(mask_path, f"{os.path.basename(imgf)}".replace(".png", "_vis.png")), img)
+
+        # # Mask from U2Net
+        # image_files = listfiles(
+        #     os.path.join(
+        #         work_dir, "images"
+        #     )
+        # )
+        # image_files.sort(key=lambda x: int(os.path.basename(x)[:-4].split("_")[1]))
+        # for imgf in tqdm(image_files):
+        #     img = imageio.imread(imgf)
+        #     img_o = imageio.imread(imgf)
+        #     msk = imageio.imread(f"{work_dir}/u2net_mask/{os.path.basename(imgf)}")
+        #     img[msk[..., 0] < 128] = 0
+        #     imageio.imsave(f"{work_dir}/u2net_mask/{os.path.basename(imgf)}".replace(".png", "_vis.png"), np.concatenate((img_o, img), axis=1)) 

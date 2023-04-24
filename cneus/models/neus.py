@@ -87,7 +87,7 @@ class NeuS(nn.Module):
             skip_in=sdf_skip_in,
             level=level,
             inside_outside=inside_outside,
-            bias=1.0,
+            bias=0.8,
         )
         self.init_rgb_net(dim_hidden=dim_geo, n_layers=rgb_n_layers)
 

@@ -91,7 +91,7 @@ def train_epoch(
     epoch_id: int,
 ) -> int:
     neus.update_occupancy_grid(opt=opt, update_grid_sam_res=update_grid_sam_res)
-    neus.export_mesh(filename=conf.export_mesh)
+    # neus.export_mesh(filename=conf.export_mesh)
 
     print("Train epoch:")
     num_rays = dataset_train.rays.origins.size(0)
@@ -108,8 +108,6 @@ def train_epoch(
         criternion = nn.L1Loss()
     depth_criternion = nn.L1Loss(reduction="none")
 
-    neus.export_mesh(filename=conf.export_mesh)
-
     for iter_id, batch_begin in pbar:
         gstep_id = iter_id + gstep_id_base
 
@@ -124,7 +122,7 @@ def train_epoch(
         ray_mask = dataset_train.rays.mask[batch_begin:batch_end]
         rays = cneus.Rays(batch_origins, batch_dirs)
 
-        export_mesh_freq = 1000
+        export_mesh_freq = 20
         if (gstep_id + 1) % export_mesh_freq == 0:
             neus.export_mesh(
                 filename=str(conf.export_mesh).replace(".ply", f"_iter_{gstep_id}.ply"),
@@ -136,7 +134,7 @@ def train_epoch(
         cos_anneal = 1.0
         optimizer.zero_grad()
 
-        up_sample_steps = conf.up_sample_steps if gstep_id >= 10000 else 0
+        up_sample_steps = 0 if gstep_id >= 10000 else 0
         (rgb_pred, depth_pred, normal_pred, normals, sval, _, weight_sum) = neus.train_render_outside_cuda(
             rays,
             opt,
@@ -245,6 +243,7 @@ if __name__ == "__main__":
 
     num_epochs = args.n_epochs
     gstep_id_base = 0
+    neus.export_mesh(filename=conf.export_mesh.replace(".ply", f"_iter_{0}.ply"))
     for epoch_id in range(num_epochs):
         # wheter to reload from a checkpoint
         if conf.load_ckpt is not None:

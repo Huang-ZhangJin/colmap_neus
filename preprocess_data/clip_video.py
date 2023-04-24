@@ -18,17 +18,21 @@ def video_cut(input_video_pth, out_video_pth):
                                   fps, \
                                   size)
     success, frame_src = video_caputre.read()
+    i = 0
     while success: 
+        i+=1
         # [width, height]
         frame_target = frame_src[60:1020:, 200:1480, :]
         # import ipdb; ipdb.set_trace()
         frame_target = cv2.resize(frame_target, size)
         videp_write.write(frame_target)
         success, frame_src = video_caputre.read()
+        if i == 901:
+            break
     print("finish cutting") 
     video_caputre.release()
  
 if __name__=="__main__":
-    input_video_pth = "toy_bear.mp4"
-    out_video_pth  = "toy_bear_cut.mp4"
+    input_video_pth = "../data/leopard/leopard.mp4"
+    out_video_pth  = "../data/leopard/leopard_cut.mp4"
     video_cut(input_video_pth, out_video_pth)

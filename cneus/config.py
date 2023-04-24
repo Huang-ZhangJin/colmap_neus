@@ -31,25 +31,13 @@ def get_default_args() -> argparse.ArgumentParser:
     group = parser.add_argument_group("Data loading")
     group.add_argument(
         "--dataset_type", default="scannet", 
-        help="Dataset type Optional: [scannet, tntindoor, tntoutdoor]"
+        help="Dataset type Optional: [scannet, tntindoor, tntoutdoor, colmap]"
     )
 
     # scene data preprocessing options
     group = parser.add_argument_group("scene processing options")
     group.add_argument("--scene", type=str, default="scene0616_00", help="scene to learning")
     group.add_argument("--factor", type=int, default=2, help="downsample factor for LLFF images")
-    parser.add_argument("--N_views", type=int, default=120, help="the number of render views")
-    parser.add_argument(
-        "--no_ndc",
-        action="store_true",
-        help="do not use normalized device coordinates (set for non-forward facing scenes)",
-    )
-    parser.add_argument(
-        "--lindisp",
-        action="store_true",
-        help="sampling linearly in disparity rather than depth",
-    )
-    parser.add_argument("--spherify", action="store_true", help="set for spherical 360 scenes")
 
     # rendering
     group = parser.add_argument_group("Render options")
