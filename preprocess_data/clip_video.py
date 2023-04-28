@@ -33,6 +33,10 @@ def video_cut(input_video_pth, out_video_pth):
     video_caputre.release()
  
 if __name__=="__main__":
-    input_video_pth = "../data/leopard/leopard.mp4"
-    out_video_pth  = "../data/leopard/leopard_cut.mp4"
+    # input_video_pth = "../data/leopard/leopard.mp4"
+    # out_video_pth  = "../data/leopard/leopard_cut.mp4"
+    # input_video_pth = "../data/labrador/labrador.mp4"
+    # out_video_pth  = "../data/labrador/labrador_cut.mp4"
+    input_video_pth = "../data/latin/latin.mp4"
+    out_video_pth  = "../data/latin/latin_cut.mp4"
     video_cut(input_video_pth, out_video_pth)

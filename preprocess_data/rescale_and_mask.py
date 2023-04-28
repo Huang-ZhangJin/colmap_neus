@@ -97,16 +97,14 @@ if __name__ == '__main__':
     if sparse_or_dense == 'dense':
         ###########################################################################
         # ''' Step one: reconstruct the mesh and manually clean it '''
-        pcd = o3d.io.read_point_cloud(colmap_mvs_pts)
+        # pcd = o3d.io.read_point_cloud(colmap_mvs_pts)
         # poisson_mesh = poisson_o3d(pcd, depth=9)
-        # o3d.io.write_triangle_mesh(os.path.join(work_dir, f"mvs_colmap_poisson.ply"), poisson_mesh)
+        # o3d.io.write_triangle_mesh(os.path.join(work_dir, f"mvs_colmap_poisson_.ply"), poisson_mesh)
 
         # msg = input('Clean the mesh...[y/n]') # observe pose file size
         # if msg != 'y':
         #     exit()
-
         # # Get the filtered mvs point clouds
-        # import ipdb; ipdb.set_trace()
         # dist_thresh = 0.1
         # mesh_colmap_poisson = o3d.io.read_triangle_mesh(os.path.join(work_dir, f"mvs_colmap_poisson_.ply")) 
         # mesh_colmap_poisson_pts = o3d.geometry.PointCloud(mesh_colmap_poisson.vertices)
@@ -118,7 +116,9 @@ if __name__ == '__main__':
         # poisson_mesh = poisson_o3d(pcd_filter, depth=9)
         # o3d.io.write_triangle_mesh(os.path.join(work_dir, f"mvs_colmap_poisson.ply"), poisson_mesh)
 
-        # import ipdb; ipdb.set_trace()
+        # msg = input('Clean the mesh...[y/n]') # observe pose file size
+        # if msg != 'y':
+        #     exit()
         # # Mesh from colmap to opencv coornidate
         # ref_mesh = trimesh.load(os.path.join(work_dir, f"mvs_colmap_poisson.ply"))
         # nvertices = np.asarray(ref_mesh.vertices)
@@ -148,13 +148,17 @@ if __name__ == '__main__':
         #     poses_norm.append(rescale_pose)
         # poses_norm = np.stack(poses_norm)
 
+        # msg = input('Clean the mesh...[y/n]') # observe pose file size
+        # if msg != 'y':
+        #     exit()
 
-        # ###########################################################################
         # ''' Step three: rot the object to be z-axis up, and xy plane as ground'''
         # norm_mesh = trimesh.load(os.path.join(work_dir, "mvs_opencv_poisson_norm.ply"))
         # # rxyz = tt.euler_matrix(0 / 180 * np.pi, 30 / 180 * np.pi, 0 / 180 * np.pi, "rxyz")
         # # rlist = [0.607278, 0.451851, 0.653487, 0, -0.399084, 0.884712, -0.240866, 0, -0.686983, -0.114524, 0.717592, 0, 0, 0, 0, 1]  # for toy_bear
-        # rlist = [-0.333699, -0.49154, -0.804384, 0, 0.275198, -0.866921, 0.415589, 0, -0.901616, -0.082683, 0.424562, 0, 0, 0, 0, 1 ]  # for leopard
+        # # rlist = [-0.333699, -0.49154, -0.804384, 0, 0.275198, -0.866921, 0.415589, 0, -0.901616, -0.082683, 0.424562, 0, 0, 0, 0, 1 ]  # for leopard
+        # # rlist = [0.604563, -0.0213623, 0.796271, 0, -0.0568336, 0.995936, 0.0698693, 0, -0.794527, -0.0874953, 0.600892, 0, 0, 0, 0, 1]  # for labardor
+        # rlist = [0.681396, 0.0182413, 0.731688, 0, -0.018128, 0.999803, -0.00804359, 0, -0.731691, -0.00778313, 0.681592, 0, 0, 0, 0, 1]  # for latin
 
         # rxyz=np.array(rlist).reshape(4,4)
 
@@ -193,64 +197,64 @@ if __name__ == '__main__':
 
 
         # ##########################################################################
-        ''' Step four: render the foreground mask for the object'''
+        # ''' Step four: render the foreground mask for the object'''
+        # # mesh_render = o3d.io.read_triangle_mesh(
+        # #     os.path.join(work_dir, "mvs_opencv_poisson_norm_zup_norm.ply")
+        # # )
         # mesh_render = o3d.io.read_triangle_mesh(
-        #     os.path.join(work_dir, "mvs_opencv_poisson_norm_zup_norm.ply")
+        #     os.path.join(work_dir, "pseudo_gt.ply")
         # )
-        mesh_render = o3d.io.read_triangle_mesh(
-            os.path.join(work_dir, "pseudo_gt.ply")
-        )
-        mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh_render)
-        scene = o3d.t.geometry.RaycastingScene()
-        _ = scene.add_triangles(mesh)
+        # mesh = o3d.t.geometry.TriangleMesh.from_legacy(mesh_render)
+        # scene = o3d.t.geometry.RaycastingScene()
+        # _ = scene.add_triangles(mesh)
 
-        pose_files = listfiles(
-            os.path.join(
-                work_dir, "pose"
-            )
-        )
-        pose_files.sort(key=lambda x: int(os.path.basename(x)[:-4].split("_")[1]))
-        poses = np.stack([np.loadtxt(posf) for posf in pose_files])
+        # pose_files = listfiles(
+        #     os.path.join(
+        #         work_dir, "pose"
+        #     )
+        # )
+        # pose_files.sort(key=lambda x: int(os.path.basename(x)[:-4].split("_")[1]))
+        # poses = np.stack([np.loadtxt(posf) for posf in pose_files])
 
-        image_files = listfiles(
-            os.path.join(
-                work_dir, "images"
-            )
-        )
-        image_files.sort(key=lambda x: int(os.path.basename(x)[:-4].split("_")[1]))
-        
-        # mask_path = os.path.join(work_dir, "masks")
-        mask_path = os.path.join(work_dir, "masks_pseudo")
-        os.makedirs(mask_path, exist_ok=True)
-        for pose, imgf in tqdm(zip(poses, image_files)):
-            origins = pose[:3, 3]  # [3]
-            origins = np.tile(origins, (height * width, 1))  # [H * W, 3]
-            rot_mat = pose[:3, :3]
-            dirs = dirs_ @ (rot_mat.T)  # [H * W, 3]
-
-            # ray casting to get the depth&normal from reconstructed mesh
-            rays = np.concatenate([origins, dirs], axis=1)  # [H * W, 6]
-            rays = o3d.core.Tensor(rays, dtype=o3d.core.Dtype.Float32)
-            ans = scene.cast_rays(rays, nthreads=0)
-            depth = ans["t_hit"].numpy().reshape(height, width)
-            depth[np.isinf(depth)] = 0
-            depth[depth > 0.05] = 1
-            depth[depth <= 0.05] = 0
-            imageio.imsave(os.path.join(mask_path, f"{os.path.basename(imgf)}"), np.array(depth*255, dtype=np.uint8))
-            img = imageio.imread(imgf)
-            img[depth<0.5] = 0
-            imageio.imsave(os.path.join(mask_path, f"{os.path.basename(imgf)}".replace(".png", "_vis.png")), img)
-
-        # # Mask from U2Net
         # image_files = listfiles(
         #     os.path.join(
         #         work_dir, "images"
         #     )
         # )
         # image_files.sort(key=lambda x: int(os.path.basename(x)[:-4].split("_")[1]))
-        # for imgf in tqdm(image_files):
+        
+        # # mask_path = os.path.join(work_dir, "masks")
+        # mask_path = os.path.join(work_dir, "masks_pseudo")
+        # os.makedirs(mask_path, exist_ok=True)
+        # for pose, imgf in tqdm(zip(poses, image_files)):
+        #     origins = pose[:3, 3]  # [3]
+        #     origins = np.tile(origins, (height * width, 1))  # [H * W, 3]
+        #     rot_mat = pose[:3, :3]
+        #     dirs = dirs_ @ (rot_mat.T)  # [H * W, 3]
+
+        #     # ray casting to get the depth&normal from reconstructed mesh
+        #     rays = np.concatenate([origins, dirs], axis=1)  # [H * W, 6]
+        #     rays = o3d.core.Tensor(rays, dtype=o3d.core.Dtype.Float32)
+        #     ans = scene.cast_rays(rays, nthreads=0)
+        #     depth = ans["t_hit"].numpy().reshape(height, width)
+        #     depth[np.isinf(depth)] = 0
+        #     depth[depth > 0.05] = 1
+        #     depth[depth <= 0.05] = 0
+        #     imageio.imsave(os.path.join(mask_path, f"{os.path.basename(imgf)}"), np.array(depth*255, dtype=np.uint8))
         #     img = imageio.imread(imgf)
-        #     img_o = imageio.imread(imgf)
-        #     msk = imageio.imread(f"{work_dir}/u2net_mask/{os.path.basename(imgf)}")
-        #     img[msk[..., 0] < 128] = 0
-        #     imageio.imsave(f"{work_dir}/u2net_mask/{os.path.basename(imgf)}".replace(".png", "_vis.png"), np.concatenate((img_o, img), axis=1)) 
+        #     img[depth<0.5] = 0
+        #     imageio.imsave(os.path.join(mask_path, f"{os.path.basename(imgf)}".replace(".png", "_vis.png")), img)
+
+        # Mask from U2Net
+        image_files = listfiles(
+            os.path.join(
+                work_dir, "images"
+            )
+        )
+        image_files.sort(key=lambda x: int(os.path.basename(x)[:-4].split("_")[1]))
+        for imgf in tqdm(image_files):
+            img = imageio.imread(imgf)
+            img_o = imageio.imread(imgf)
+            msk = imageio.imread(f"{work_dir}/u2net_mask/{os.path.basename(imgf)}")
+            img[msk[..., 0] < 128] = 0
+            imageio.imsave(f"{work_dir}/u2net_mask/{os.path.basename(imgf)}".replace(".png", "_vis.png"), np.concatenate((img_o, img), axis=1)) 

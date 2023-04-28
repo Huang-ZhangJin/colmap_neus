@@ -79,8 +79,8 @@ class ColmapDataset(DatasetBase):
                     os.path.join(
                         self.data_root, 
                         # "masks", 
-                        # "u2net_mask",
-                        "masks_pseudo",
+                        "u2net_mask",
+                        # "masks_pseudo",
                         f"{imgname}"
                     )
                 )
