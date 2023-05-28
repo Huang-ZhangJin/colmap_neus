@@ -1,4 +1,8 @@
 numpy
 opencv-python
 omegaconf
-lu_vp_detect
+torch==2.0.0
+cumcubes
+open3d==0.16.0
+trimesh
+tensorboardX

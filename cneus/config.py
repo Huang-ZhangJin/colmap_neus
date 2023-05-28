@@ -31,7 +31,7 @@ def get_default_args() -> argparse.ArgumentParser:
     group = parser.add_argument_group("Data loading")
     group.add_argument(
         "--dataset_type", default="scannet", 
-        help="Dataset type Optional: [scannet, tntindoor, tntoutdoor, colmap]"
+        help="Dataset type Optional: [scannet, tntindoor, tntoutdoor, colmap, dtu]"
     )
 
     # scene data preprocessing options
